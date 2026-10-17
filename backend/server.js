@@ -1,4 +1,4 @@
-const http = require("http");
+﻿const http = require("http");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -112,7 +112,7 @@ const startServer = async () => {
       );
     });
   } catch (error) {
-    console.error("Server startup failed.");
+    console.error("Server startup failed:", error);
     process.exit(1);
   }
 };
