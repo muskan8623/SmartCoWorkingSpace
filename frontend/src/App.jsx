@@ -1,10 +1,9 @@
-
+﻿
 import { useEffect, useMemo, useState } from "react";
 import { bookingApi, TOKEN_KEY, USER_KEY } from "./api";
 import { io } from "socket.io-client";
 import {
   Activity,
-  ArrowDownRight,
   ArrowUpRight,
   Bell,
   Building2,
@@ -30,7 +29,10 @@ import "./App.css";
 import WorkspaceBookingPanel from "./WorkspaceBookingPanel";
 import BookingManager from "./BookingManager";
 
-const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, "");
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
 const WORKSPACE_ID = "6ac2342906386179cbd006ac";
 
 const navigation = [
@@ -130,7 +132,9 @@ function App() {
 
   // Load initial workspace availability
   useEffect(() => {
-    const loadAvailability = async () => {
+    let cancelled = false;
+
+    async function loadAvailability() {
       try {
         const response = await fetch(
           `${API_URL}/api/availability/${WORKSPACE_ID}`
@@ -143,22 +147,30 @@ function App() {
           );
         }
 
-        if (result.success && result.data?.availability) {
+        if (!cancelled && result.success && result.data?.availability) {
           setAvailability(result.data.availability);
         }
       } catch (error) {
-        console.error("Failed to load availability:", error);
+        if (!cancelled) {
+          console.error("Failed to load availability:", error);
+        }
       }
-    };
+    }
 
     loadAvailability();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
   // Real-time workspace monitoring
   useEffect(() => {
     const socket = io(API_URL, {
       transports: ["websocket"],
     });
-socket.on("connect", () => {
+
+    socket.on("connect", () => {
       setConnected(true);
       socket.emit("joinWorkspace", WORKSPACE_ID);
     });
@@ -178,7 +190,7 @@ socket.on("connect", () => {
     };
   }, []);
 
-  // Keep the profile and notification state in sync with login changes
+  // Keep profile and notification state in sync with login changes
   useEffect(() => {
     function handleAuthChanged() {
       setCurrentUser(readSavedUser());
@@ -220,11 +232,15 @@ socket.on("connect", () => {
 
   const availableCount = availability?.availableCapacity;
   const occupiedCount = availability?.occupiedCapacity;
-  const totalCapacity = availability?.totalCapacity ?? workspace.capacity;
+  const totalCapacity =
+    availability?.totalCapacity ?? workspace.capacity;
 
   const occupancyPercent =
     totalCapacity > 0 && occupiedCount != null
-      ? Math.min(100, Math.round((occupiedCount / totalCapacity) * 100))
+      ? Math.min(
+          100,
+          Math.round((occupiedCount / totalCapacity) * 100)
+        )
       : 0;
 
   const pageDescriptions = {
@@ -380,6 +396,7 @@ socket.on("connect", () => {
       setProfileEmail("");
       setShowProfileLogin(false);
       setProfileMenuOpen(false);
+
       window.dispatchEvent(new Event("authChanged"));
     } catch (error) {
       setProfileError(
@@ -409,7 +426,7 @@ socket.on("connect", () => {
 
   const displayName = currentUser?.name || "Guest";
   const displayRole = currentUser?.role || "Not signed in";
-  const avatarText = getInitials(currentUser?.name);
+  const avatarText = getInitials(displayName);
 
   return (
     <div className="app-shell">
@@ -508,11 +525,17 @@ socket.on("connect", () => {
 
         <div className="profile-area">
           <div className="profile">
-            <div className="avatar">{getInitials(currentUser?.name || "WO")}</div>
+            <div className="avatar">
+              {getInitials(currentUser?.name || "WO")}
+            </div>
 
             <div className="profile-copy">
-              <strong>{currentUser?.name || "Workspace Owner"}</strong>
-              <span>{currentUser?.role || "Administrator"}</span>
+              <strong>
+                {currentUser?.name || "Workspace Owner"}
+              </strong>
+              <span>
+                {currentUser?.role || "Administrator"}
+              </span>
             </div>
 
             <button
@@ -543,7 +566,9 @@ socket.on("connect", () => {
               {currentUser ? (
                 <>
                   <div className="profile-account-details">
-                    <strong>{currentUser.name || "Workspace Owner"}</strong>
+                    <strong>
+                      {currentUser.name || "Workspace Owner"}
+                    </strong>
                     <span className="profile-email">
                       {currentUser.email || ""}
                     </span>
@@ -599,7 +624,9 @@ socket.on("connect", () => {
                         required
                       />
 
-                      <label htmlFor="profile-password">Password</label>
+                      <label htmlFor="profile-password">
+                        Password
+                      </label>
                       <input
                         id="profile-password"
                         type="password"
@@ -691,6 +718,7 @@ socket.on("connect", () => {
                 }}
               >
                 <Bell size={20} />
+
                 {unreadCount > 0 && (
                   <span className="notification-badge">
                     {unreadCount > 99 ? "99+" : unreadCount}
@@ -726,7 +754,9 @@ socket.on("connect", () => {
                   {notificationLoading ? (
                     <p>Loading notifications...</p>
                   ) : notificationError ? (
-                    <p className="profile-error">{notificationError}</p>
+                    <p className="profile-error">
+                      {notificationError}
+                    </p>
                   ) : notifications.length === 0 ? (
                     <p>
                       {localStorage.getItem(TOKEN_KEY)
@@ -749,7 +779,9 @@ socket.on("connect", () => {
                               <strong>
                                 {getNotificationTitle(notification)}
                               </strong>
-                              <p>{getNotificationMessage(notification)}</p>
+                              <p>
+                                {getNotificationMessage(notification)}
+                              </p>
                               <small>
                                 {formatNotificationDate(
                                   notification.createdAt
@@ -929,7 +961,7 @@ socket.on("connect", () => {
                   </div>
 
                   <div className="stat-value">
-                    {availableCount ?? "â€”"}
+                    {availableCount ?? "—"}
                     {availableCount != null && (
                       <span className="stat-unit"> seats</span>
                     )}
@@ -954,7 +986,7 @@ socket.on("connect", () => {
                   </div>
 
                   <div className="stat-value">
-                    {occupiedCount ?? "â€”"}
+                    {occupiedCount ?? "—"}
                     {occupiedCount != null && (
                       <span className="stat-unit"> seats</span>
                     )}
@@ -977,7 +1009,7 @@ socket.on("connect", () => {
 
                   <div className="stat-value">
                     {occupiedCount == null
-                      ? "â€”"
+                      ? "—"
                       : `${occupancyPercent}%`}
                   </div>
 
@@ -1030,11 +1062,13 @@ socket.on("connect", () => {
                       </div>
 
                       <div className="building-ground" />
+
                       <div className="plant plant-left">
                         <i />
                         <i />
                         <i />
                       </div>
+
                       <div className="plant plant-right">
                         <i />
                         <i />
@@ -1051,19 +1085,23 @@ socket.on("connect", () => {
                     <div className="workspace-title-row">
                       <div>
                         <h4
-  onClick={() => selectPage("Workspaces")}
-  role="button"
-  tabIndex={0}
-  style={{ cursor: "pointer" }}
-  onKeyDown={(event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      selectPage("Workspaces");
-    }
-  }}
->
-  {workspace.name}
-</h4>
+                          onClick={() => selectPage("Workspaces")}
+                          role="button"
+                          tabIndex={0}
+                          style={{ cursor: "pointer" }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Enter" ||
+                              event.key === " "
+                            ) {
+                              event.preventDefault();
+                              selectPage("Workspaces");
+                            }
+                          }}
+                        >
+                          {workspace.name}
+                        </h4>
+
                         <div className="workspace-location">
                           <MapPin size={14} />
                           {workspace.address}
@@ -1119,7 +1157,7 @@ socket.on("connect", () => {
 
                   <div className="availability-summary">
                     <div className="availability-number">
-                      <strong>{availableCount ?? "â€”"}</strong>
+                      <strong>{availableCount ?? "—"}</strong>
                       <span>Available seats</span>
                     </div>
 
@@ -1130,7 +1168,7 @@ socket.on("connect", () => {
                       <div className="capacity-ring-inner">
                         <strong>
                           {occupiedCount == null
-                            ? "â€”"
+                            ? "—"
                             : `${occupancyPercent}%`}
                         </strong>
                         <span>occupied</span>
@@ -1141,11 +1179,14 @@ socket.on("connect", () => {
                   <div className="capacity-legend">
                     <div>
                       <span className="legend-dot legend-available" />
-                      Available <strong>{availableCount ?? "â€”"}</strong>
+                      Available{" "}
+                      <strong>{availableCount ?? "—"}</strong>
                     </div>
+
                     <div>
                       <span className="legend-dot legend-occupied" />
-                      Occupied <strong>{occupiedCount ?? "â€”"}</strong>
+                      Occupied{" "}
+                      <strong>{occupiedCount ?? "—"}</strong>
                     </div>
                   </div>
 
@@ -1194,6 +1235,7 @@ socket.on("connect", () => {
                 <div className="search-toolbar">
                   <div className="search-field">
                     <Search size={18} />
+
                     <input
                       type="search"
                       placeholder="Search workspace, location or type..."
@@ -1232,7 +1274,9 @@ socket.on("connect", () => {
                       </span>
                     </div>
 
-                    <span className="activity-type">{workspace.type}</span>
+                    <span className="activity-type">
+                      {workspace.type}
+                    </span>
 
                     <span className="activity-capacity">
                       <Users size={15} /> {workspace.capacity} seats
@@ -1253,6 +1297,7 @@ socket.on("connect", () => {
                     <p>
                       Try another name, location, or workspace type.
                     </p>
+
                     <button
                       className="text-button"
                       onClick={() => setSearch("")}
@@ -1292,10 +1337,14 @@ socket.on("connect", () => {
                   <strong>
                     Socket.IO: {connected ? "Connected" : "Disconnected"}
                   </strong>
+
                   <span>Workspace ID: {WORKSPACE_ID}</span>
+
                   <span>
                     {availability
-                      ? `${availableCount} available .  ${occupiedCount} occupied .  ${totalCapacity} total`
+                      ? `${availableCount ?? "—"} available · ${
+                          occupiedCount ?? "—"
+                        } occupied · ${totalCapacity} total`
                       : "Waiting for an availabilityUpdated event from the backend."}
                   </span>
                 </div>
@@ -1308,7 +1357,9 @@ socket.on("connect", () => {
                       <strong>Notification center</strong>
                       <p>
                         {unreadCount} unread{" "}
-                        {unreadCount === 1 ? "notification" : "notifications"}
+                        {unreadCount === 1
+                          ? "notification"
+                          : "notifications"}
                       </p>
                     </div>
 
@@ -1399,11 +1450,15 @@ socket.on("connect", () => {
                                     Read
                                   </span>
                                 ) : (
-                                  <span className="unread-label">Unread</span>
+                                  <span className="unread-label">
+                                    Unread
+                                  </span>
                                 )}
                               </div>
 
-                              <p>{getNotificationMessage(notification)}</p>
+                              <p>
+                                {getNotificationMessage(notification)}
+                              </p>
 
                               {notification.createdAt && (
                                 <small>
@@ -1471,7 +1526,8 @@ socket.on("connect", () => {
           ) : null}
 
           <footer className="page-footer">
-            <span>Â© 2026 Flexora Workspace Management</span>
+            <span>© 2026 Flexora Workspace Management</span>
+
             <span>
               <span
                 className={`footer-status ${
@@ -1490,6 +1546,3 @@ socket.on("connect", () => {
 }
 
 export default App;
-
-
-
